@@ -1,5 +1,6 @@
 use std::num::ParseFloatError;
 use std::str::FromStr;
+use std::convert::Infallible;
 
 #[derive(Debug, PartialEq)]
 pub enum ParseBookError {
@@ -10,6 +11,12 @@ pub enum ParseBookError {
 impl From<ParseFloatError> for ParseBookError {
     fn from(_: ParseFloatError) -> Self {
         Self::InvalidFormat
+    }
+}
+
+impl From<Infallible> for ParseBookError {
+    fn from(_: Infallible) -> Self {
+        unreachable!()
     }
 }
 
@@ -24,8 +31,26 @@ pub struct Book {
 impl FromStr for Book {
     type Err = ParseBookError;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let parts: Vec<_> = s.split(';').map(str::trim).collect();
+        let title = parts[0].parse::<String>()?;
+        let author = parts[1].parse::<String>()?;
+
+        if title.starts_with("//") {
+            return  Err(ParseBookError::Comment);
+        }
+
+        if author.len() == 0 || parts.len() < 3 || parts.len() > 4 {
+            return  Err(ParseBookError::InvalidFormat);
+        }
+
+        let price = parts[2].parse::<f32>()?;
+
+        let description: Option<String> = match parts.get(3) {
+            Some(desc) => Some(desc.parse::<String>()?),
+            None => None,
+        };
+        Ok(Book { title: title, author:author, price: price, description: description })
     }
 }
 
