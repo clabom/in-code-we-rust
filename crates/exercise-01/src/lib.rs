@@ -1,6 +1,7 @@
 use std::num::ParseFloatError;
 use std::str::FromStr;
 use std::convert::Infallible;
+use std::fmt;
 
 #[derive(Debug, PartialEq)]
 pub enum ParseBookError {
@@ -33,15 +34,19 @@ impl FromStr for Book {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let parts: Vec<_> = s.split(';').map(str::trim).collect();
+
+        if parts.len() < 3 || parts.len() > 4 {
+            return  Err(ParseBookError::InvalidFormat);
+        }
+
         let title = parts[0].parse::<String>()?;
         let author = parts[1].parse::<String>()?;
+        if author.len() == 0 {
+            return  Err(ParseBookError::InvalidFormat);
+        }
 
         if title.starts_with("//") {
             return  Err(ParseBookError::Comment);
-        }
-
-        if author.len() == 0 || parts.len() < 3 || parts.len() > 4 {
-            return  Err(ParseBookError::InvalidFormat);
         }
 
         let price = parts[2].parse::<f32>()?;
@@ -51,6 +56,18 @@ impl FromStr for Book {
             None => None,
         };
         Ok(Book { title: title, author:author, price: price, description: description })
+    }
+}
+
+impl fmt::Display for Book {    // This trait requires `fmt` with this exact signature.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Title: {}, Author: {}, Price:{}",
+               self.title, self.author, self.price)?;
+        match &self.description {
+            Some(desc) => write!(f, ", Description: {}", desc)?,
+            None => write!(f, "")?,
+        }
+        Ok(())
     }
 }
 
